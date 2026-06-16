@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Organizador Pessoal</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d6efd">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-primary">
+  <div class="container"><span class="navbar-brand mb-0 h1"><i class="bi bi-check2-square"></i> Organizador Pessoal</span></div>
+</nav>
+<main class="container py-3">
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tarefas"><i class="bi bi-list-task"></i> Tarefas</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#compras"><i class="bi bi-cart-check"></i> Compras</button></li>
+  </ul>
+  <div class="tab-content">
+    <section class="tab-pane fade show active" id="tarefas">
+      <div class="row g-3 mb-3">
+        <div class="col-6"><div class="card shadow-sm"><div class="card-body"><small class="text-muted">Total de tarefas</small><h2 id="totalTasks" class="mb-0">0</h2></div></div></div>
+        <div class="col-6"><div class="card shadow-sm"><div class="card-body"><small class="text-muted">Categorias</small><h2 id="totalCats" class="mb-0">0</h2></div></div></div>
+      </div>
+      <form id="taskForm" class="card card-body shadow-sm mb-3">
+        <input type="hidden" id="taskId">
+        <div class="row g-2">
+          <div class="col-md-3"><label class="form-label">Data</label><input type="date" id="taskDate" class="form-control" required></div>
+          <div class="col-md-4"><label class="form-label">Categoria</label><div class="input-group"><select id="taskCategory" class="form-select" required></select><button type="button" class="btn btn-success" title="Adicionar categoria" data-bs-toggle="modal" data-bs-target="#categoryModal"><i class="bi bi-plus-circle"></i></button></div></div>
+          <div class="col-md-5"><label class="form-label">Descrição</label><input id="taskDescription" class="form-control" placeholder="Ex.: Lavagem das roupas" required></div>
+        </div>
+        <div class="d-flex gap-2 mt-3"><button class="btn btn-primary"><i class="bi bi-save"></i> Salvar tarefa</button><button type="button" class="btn btn-outline-secondary" onclick="clearTaskForm()">Limpar</button></div>
+      </form>
+      <div class="row g-2 mb-3"><div class="col-md-4"><select id="filterCategory" class="form-select"></select></div><div class="col-md-8"><input id="searchTask" class="form-control" placeholder="Pesquisar tarefa..."></div></div>
+      <div id="tasksList"></div>
+    </section>
+    <section class="tab-pane fade" id="compras">
+      <div class="row g-3 mb-3">
+        <div class="col-6"><div class="card shadow-sm"><div class="card-body"><small class="text-muted">Total de itens</small><h2 id="totalItems" class="mb-0">0</h2></div></div></div>
+        <div class="col-6"><div class="card shadow-sm"><div class="card-body"><small class="text-muted">Itens comprados</small><h2 id="totalChecked" class="mb-0">0</h2></div></div></div>
+      </div>
+      <form id="marketForm" class="card card-body shadow-sm mb-3"><input type="hidden" id="marketId"><label class="form-label">Item da compra</label><div class="input-group"><input id="marketItem" class="form-control" placeholder="Ex.: Arroz, feijão, café..." required><button class="btn btn-success"><i class="bi bi-plus-lg"></i> Adicionar</button></div></form>
+      <div id="marketList"></div>
+    </section>
+  </div>
+  <div class="card card-body shadow-sm mt-4"><h5>Backup</h5><div class="d-flex flex-wrap gap-2"><button class="btn btn-outline-primary" onclick="exportBackup()"><i class="bi bi-download"></i> Exportar backup</button><input type="file" id="importBackupInput" accept="application/json" hidden><button class="btn btn-outline-secondary" onclick="document.getElementById('importBackupInput').click()"><i class="bi bi-upload"></i> Importar backup</button></div></div>
+</main>
+<div class="modal fade" id="categoryModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-tags"></i> Cadastro de Categorias</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="input-group mb-3"><input id="newCategory" class="form-control" placeholder="Nome da categoria"><button type="button" class="btn btn-primary" onclick="addCategory()">Adicionar</button></div><div id="categoryList"></div></div></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
