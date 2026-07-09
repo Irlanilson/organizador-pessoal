@@ -1,1 +1,1 @@
-Organizador Pessoal V2 offline, sem Bootstrap. Importa backup da versão anterior ou restaura dados antigos do localStorage.
+Organizador Pessoal atualizado com ícones PNG para iPhone: icon-180.png, icon-192.png e icon-512.png.
