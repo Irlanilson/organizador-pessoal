@@ -1,0 +1,1 @@
+Organizador Pessoal V2 offline, sem Bootstrap. Importa backup da versão anterior ou restaura dados antigos do localStorage.
