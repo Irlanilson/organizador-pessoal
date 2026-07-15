@@ -108,7 +108,7 @@ async function renderCloudPanel(){
  auth.hidden=true;connected.hidden=false;
  byId('cloudEmail').textContent=user.email||'Conta conectada';
  try{
-  const response=await cloudRequest(`/rest/v1/app_backups?app_name=eq.${encodeURIComponent(CLOUD_APP_NAME)}&select=updated_at&limit=1&_=${Date.now()}`);
+  const response=await cloudRequest(`/rest/v1/app_backups?app_name=eq.${encodeURIComponent(CLOUD_APP_NAME)}&select=updated_at&order=updated_at.desc&limit=1`);
   const rows=response.ok?await response.json():[];
   byId('cloudLastSync').textContent=rows[0]?.updated_at?cloudDate(rows[0].updated_at):'Nenhum backup enviado';
   status.innerHTML='<strong>Conta conectada</strong><p>Os dados continuam locais. A nuvem só é alterada quando você toca em um botão abaixo.</p>';
@@ -158,7 +158,9 @@ async function uploadCloudData(){
    byId('cloudLastSync').textContent=cloudDate(updatedAt);
   }
   alert('Dados enviados para a nuvem com sucesso.');
-  await renderCloudPanel();
+  if(!updatedAt){
+   await renderCloudPanel();
+  }
  }catch(error){alert(`Falha no envio: ${error.message}`)}
 }
 async function downloadCloudData(){
