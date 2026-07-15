@@ -1,117 +1,42 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Organizador Pessoal</title><meta name="theme-color" content="#0d6efd"><meta name="apple-mobile-web-app-title" content="Organizador"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" sizes="180x180" href="icon-180.png"><link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"><link rel="stylesheet" href="style.css"></head><body>
+<header><h1>Organizador Pessoal</h1><p>Tarefas e lista de compras</p></header><main>
+<nav><button class="tab active" data-tab="tarefas">Tarefas</button><button class="tab" data-tab="compras">Compras</button><button class="tab" data-tab="sincronizacao">Sincronização</button><button class="tab" data-tab="backup">Backup</button></nav>
+<section id="tarefas" class="page active"><div class="cards"><div class="card"><span>Total de tarefas</span><strong id="totalTasks">0</strong></div><div class="card"><span>Categorias</span><strong id="totalCategories">0</strong></div></div>
+<form id="taskForm" class="panel"><h2>Nova Tarefa</h2><input type="hidden" id="taskId"><label>Data <input id="taskDate" type="date" required></label><label>Categoria<div class="line"><select id="taskCategory" required></select><button type="button" id="openCategoryModal" class="add">+</button></div></label><label>Descrição <input id="taskDescription" required placeholder="Ex.: Lavagem das roupas"></label><div class="actions"><button>Salvar</button><button type="button" class="secondary" onclick="clearTaskForm()">Limpar</button></div></form>
+<div class="panel"><label>Filtrar categoria <select id="filterCategory"></select></label><label>Pesquisar <input id="searchTask" placeholder="Pesquisar..."></label></div><div id="tasksList"></div></section>
+<section id="compras" class="page"><div class="cards"><div class="card"><span>Total de itens</span><strong id="totalItems">0</strong></div><div class="card"><span>Comprados</span><strong id="totalChecked">0</strong></div></div><form id="marketForm" class="panel"><h2>Lista de Compras</h2><input type="hidden" id="marketId"><label>Item <input id="marketItem" required></label><div class="actions"><button>Adicionar</button><button type="button" class="secondary" onclick="clearMarketForm()">Limpar</button></div></form><div id="marketList"></div></section>
 
-  <title>Organizador Pessoal</title>
+  <section id="sincronizacao" class="page">
+    <div class="panel">
+      <h2>Sincronização na nuvem</h2>
+      <div id="cloudStatus" class="cloud-status"></div>
 
-  <meta name="theme-color" content="#0d6efd">
-  <meta name="description" content="Aplicativo de tarefas e lista de compras.">
-  <meta name="apple-mobile-web-app-title" content="Organizador">
-  <meta name="application-name" content="Organizador">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-<header>
-  <h1>Organizador Pessoal</h1>
-  <p>Tarefas e compras</p>
-</header>
-
-<main>
-  <nav>
-    <button class="tab active" data-tab="tarefas">Tarefas</button>
-    <button class="tab" data-tab="compras">Compras</button>
-    <button class="tab" data-tab="backup">Backup</button>
-  </nav>
-
-  <section id="tarefas" class="page active">
-    <div class="cards">
-      <div class="card"><span>Total de tarefas</span><strong id="totalTasks">0</strong></div>
-      <div class="card"><span>Categorias</span><strong id="totalCategories">0</strong></div>
-    </div>
-
-    <form id="taskForm" class="panel">
-      <h2>Nova Tarefa</h2>
-      <input type="hidden" id="taskId">
-      <label>Data <input id="taskDate" type="date" required></label>
-      <label>Categoria
-        <div class="line">
-          <select id="taskCategory" required></select>
-          <button type="button" id="openCategoryModal" class="add">+</button>
+      <form id="cloudAuth" onsubmit="submitCloudLogin(event)">
+        <label>E-mail <input id="cloudLoginEmail" type="email" autocomplete="email" required></label>
+        <label>Senha <input id="cloudLoginPassword" type="password" autocomplete="current-password" minlength="6" required></label>
+        <div class="actions">
+          <button>Entrar</button>
+          <button type="button" class="secondary" onclick="createCloudAccount()">Criar conta</button>
         </div>
-      </label>
-      <label>Descrição <input id="taskDescription" required placeholder="Ex.: Lavagem das roupas"></label>
-      <div class="actions">
-        <button>Salvar</button>
-        <button type="button" class="secondary" onclick="clearTaskForm()">Limpar</button>
-      </div>
-    </form>
+      </form>
 
-    <div class="panel">
-      <label>Filtrar categoria <select id="filterCategory"></select></label>
-      <label>Pesquisar <input id="searchTask" placeholder="Pesquisar..."></label>
-    </div>
-
-    <div id="tasksList"></div>
-  </section>
-
-  <section id="compras" class="page">
-    <div class="cards">
-      <div class="card"><span>Total de itens</span><strong id="totalItems">0</strong></div>
-      <div class="card"><span>Comprados</span><strong id="totalChecked">0</strong></div>
-    </div>
-
-    <form id="marketForm" class="panel">
-      <h2>Lista de Compras</h2>
-      <input type="hidden" id="marketId">
-      <label>Item <input id="marketItem" required placeholder="Ex.: Arroz, feijão..."></label>
-      <div class="actions">
-        <button>Adicionar</button>
-        <button type="button" class="secondary" onclick="clearMarketForm()">Limpar</button>
-      </div>
-    </form>
-
-    <div id="marketList"></div>
-  </section>
-
-  <section id="backup" class="page">
-    <div class="panel">
-      <h2>Backup</h2>
-      <p>Você pode exportar seus dados ou importar um backup JSON.</p>
-      <div class="actions">
-        <button onclick="exportBackup()">Exportar backup</button>
-        <label class="file">Importar backup<input id="backupInput" type="file" accept="application/json" hidden></label>
-        <button type="button" class="secondary" onclick="restoreLegacyData()">Restaurar dados antigos</button>
+      <div id="cloudConnected" hidden>
+        <div class="cloud-account">
+          <span>Conta</span>
+          <strong id="cloudEmail"></strong>
+          <span>Último backup na nuvem</span>
+          <strong id="cloudLastSync">Consultando...</strong>
+        </div>
+        <div class="actions cloud-actions">
+          <button type="button" onclick="uploadCloudData()">↑ Enviar para a nuvem</button>
+          <button type="button" onclick="downloadCloudData()">↓ Baixar da nuvem</button>
+          <button type="button" class="secondary" onclick="restorePreCloudBackup()">Restaurar cópia local anterior</button>
+          <button type="button" class="secondary" onclick="cloudSignOut()">Sair da conta</button>
+        </div>
       </div>
     </div>
   </section>
-</main>
 
-<div id="categoryModal" class="modal-bg">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Categorias</h2>
-      <button id="closeCategoryModal" class="secondary">×</button>
-    </div>
-    <div class="line">
-      <input id="newCategory" placeholder="Nova categoria">
-      <button onclick="addCategory()">Adicionar</button>
-    </div>
-    <div id="categoryList"></div>
-  </div>
-</div>
-
-<script src="app.js"></script>
-</body>
-</html>
+<section id="backup" class="page"><div class="panel"><h2>Backup</h2><p>Exporte ou importe seus dados locais.</p><div class="actions"><button onclick="exportBackup()">Exportar backup</button><label class="file">Importar backup<input id="backupInput" type="file" accept="application/json" hidden></label><button type="button" class="secondary" onclick="restoreLegacyData()">Restaurar dados antigos</button></div></div></section></main>
+<div id="categoryModal" class="modal-bg"><div class="modal"><div class="modal-head"><h2>Categorias</h2><button id="closeCategoryModal" class="secondary">×</button></div><div class="line"><input id="newCategory" placeholder="Nova categoria"><button onclick="addCategory()">Adicionar</button></div><div id="categoryList"></div></div></div>
+<script>window.CLOUD_APP_NAME='organizador_pessoal';</script><script src="config.js"></script><script src="sync.js"></script><script src="app.js"></script></body></html>

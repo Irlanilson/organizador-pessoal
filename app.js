@@ -1,54 +1,29 @@
-const KEY='organizador_pessoal_v2_ios';
-let state={tasks:[],market:[],categories:['Lavagem','Limpeza','Organização']};
-
-function byId(id){return document.getElementById(id)}
+const KEY='organizador_pessoal_v2_ios';let state={tasks:[],market:[],categories:['Lavagem','Limpeza','Organização']};
+function byId(id){return document.getElementById(id)};
 function esc(t){return String(t??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
-function load(){const saved=localStorage.getItem(KEY); if(saved){try{state=JSON.parse(saved)}catch{}} else restoreLegacyData(false)}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))};
+function load(){const s=localStorage.getItem(KEY);if(s){try{state=JSON.parse(s)}catch{}}else restoreLegacyData(false)}
+function localToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 function brDate(d){if(!d)return'';const [y,m,day]=d.split('-');return `${day}/${m}/${y}`}
-
-function restoreLegacyData(show=true){
-  const oldTasks=JSON.parse(localStorage.getItem('tasks')||'[]');
-  const oldMarket=JSON.parse(localStorage.getItem('market')||'[]');
-  const oldCategories=JSON.parse(localStorage.getItem('categories')||'[]');
-  if(oldTasks.length||oldMarket.length||oldCategories.length){
-    state.tasks=oldTasks.map(t=>({id:t.id||Date.now(),date:t.date,category:t.category,description:t.description}));
-    state.market=oldMarket.map(i=>({id:i.id||Date.now(),text:i.text,checked:!!i.checked}));
-    state.categories=oldCategories.length?oldCategories:[...new Set(state.tasks.map(t=>t.category).filter(Boolean))];
-    if(!state.categories.length)state.categories=['Lavagem','Limpeza','Organização'];
-    save(); renderAll(); if(show)alert('Dados antigos restaurados.'); return true;
-  }
-  if(show)alert('Não encontrei dados antigos neste navegador.'); return false;
-}
-
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));b.classList.add('active');byId(b.dataset.tab).classList.add('active')});
-
-function renderCategories(){
-  const task=byId('taskCategory'), filter=byId('filterCategory'), list=byId('categoryList');
-  const tv=task.value,fv=filter.value; task.innerHTML='<option value="">Selecione...</option>'; filter.innerHTML='<option value="">Todas</option>'; list.innerHTML='';
-  state.categories.sort((a,b)=>a.localeCompare(b)).forEach((c,i)=>{task.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`;filter.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`;list.innerHTML+=`<div class="item"><strong>${esc(c)}</strong><button class="secondary" onclick="deleteCategory(${i})">Excluir</button></div>`});
-  task.value=tv; filter.value=fv; byId('totalCategories').innerText=state.categories.length;
-}
-function addCategory(){const v=byId('newCategory').value.trim();if(!v)return;if(state.categories.some(c=>c.toLowerCase()===v.toLowerCase())){alert('Categoria já existe.');return}state.categories.push(v);byId('newCategory').value='';save();renderAll()}
-function deleteCategory(i){const c=state.categories[i]; if(state.tasks.some(t=>t.category===c)){alert('Categoria em uso.');return} if(confirm('Excluir categoria?')){state.categories.splice(i,1);save();renderAll()}}
-byId('openCategoryModal').onclick=()=>byId('categoryModal').classList.add('show');
-byId('closeCategoryModal').onclick=()=>byId('categoryModal').classList.remove('show');
-
-byId('taskForm').onsubmit=e=>{e.preventDefault();const id=byId('taskId').value;const t={id:id||Date.now(),date:byId('taskDate').value,category:byId('taskCategory').value,description:byId('taskDescription').value.trim()};if(!t.category){alert('Selecione uma categoria.');return}if(id)state.tasks[state.tasks.findIndex(x=>x.id==id)]=t;else state.tasks.push(t);save();clearTaskForm();renderAll()}
-function clearTaskForm(){byId('taskForm').reset();byId('taskId').value=''}
-function renderTasks(){let data=[...state.tasks];const f=byId('filterCategory').value,s=byId('searchTask').value.toLowerCase().trim();if(f)data=data.filter(t=>t.category===f);if(s)data=data.filter(t=>t.description.toLowerCase().includes(s)||t.category.toLowerCase().includes(s));data.sort((a,b)=>String(b.date).localeCompare(String(a.date)));byId('tasksList').innerHTML=data.length?data.map(t=>`<div class="item"><div><span class="badge">${esc(t.category)}</span><h3>${esc(t.description)}</h3><p class="muted">${brDate(t.date)}</p></div><div class="actions"><button onclick="editTask(${t.id})">Editar</button><button class="secondary" onclick="deleteTask(${t.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhuma tarefa encontrada.</div>';byId('totalTasks').innerText=state.tasks.length}
-function editTask(id){const t=state.tasks.find(x=>x.id==id);byId('taskId').value=t.id;byId('taskDate').value=t.date;byId('taskCategory').value=t.category;byId('taskDescription').value=t.description;window.scrollTo({top:0,behavior:'smooth'})}
-function deleteTask(id){if(confirm('Excluir tarefa?')){state.tasks=state.tasks.filter(x=>x.id!=id);save();renderAll()}}
-byId('filterCategory').onchange=renderTasks;byId('searchTask').oninput=renderTasks;
-
-byId('marketForm').onsubmit=e=>{e.preventDefault();const id=byId('marketId').value;const item={id:id||Date.now(),text:byId('marketItem').value.trim(),checked:false};if(!item.text)return;if(id){const idx=state.market.findIndex(x=>x.id==id);item.checked=state.market[idx].checked;state.market[idx]=item}else state.market.push(item);save();clearMarketForm();renderMarket()}
-function clearMarketForm(){byId('marketForm').reset();byId('marketId').value=''}
-function renderMarket(){byId('marketList').innerHTML=state.market.length?state.market.map(i=>`<div class="item"><label><input type="checkbox" ${i.checked?'checked':''} onchange="toggleItem(${i.id})"> <span class="${i.checked?'done':''}">${esc(i.text)}</span></label><div class="actions"><button onclick="editItem(${i.id})">Editar</button><button class="secondary" onclick="deleteItem(${i.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum item.</div>';byId('totalItems').innerText=state.market.length;byId('totalChecked').innerText=state.market.filter(i=>i.checked).length}
-function toggleItem(id){const i=state.market.find(x=>x.id==id);i.checked=!i.checked;save();renderMarket()}
-function editItem(id){const i=state.market.find(x=>x.id==id);byId('marketId').value=i.id;byId('marketItem').value=i.text}
+function getCloudPayload(){return {tasks:state.tasks,market:state.market,categories:state.categories}};
+function getCloudCounts(p){return `${(p.tasks||[]).length} tarefas\n${(p.market||[]).length} itens de compra\n${(p.categories||[]).length} categorias`};
+function applyCloudPayload(p){state={tasks:p.tasks||[],market:p.market||[],categories:p.categories||['Lavagem','Limpeza','Organização']};save();renderAll()}
+function restoreLegacyData(show=true){const oldTasks=JSON.parse(localStorage.getItem('tasks')||'[]'),oldMarket=JSON.parse(localStorage.getItem('market')||'[]'),oldCategories=JSON.parse(localStorage.getItem('categories')||'[]');if(oldTasks.length||oldMarket.length||oldCategories.length){state.tasks=oldTasks;state.market=oldMarket;state.categories=oldCategories.length?oldCategories:[...new Set(oldTasks.map(t=>t.category).filter(Boolean))];save();renderAll();if(show)alert('Dados antigos restaurados.');return true}if(show)alert('Não encontrei dados antigos.');return false}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));b.classList.add('active');byId(b.dataset.tab).classList.add('active');if(b.dataset.tab==='sincronizacao')renderCloudPanel()});
+function renderCategories(){const task=byId('taskCategory'),filter=byId('filterCategory'),list=byId('categoryList'),tv=task.value,fv=filter.value;task.innerHTML='<option value="">Selecione...</option>';filter.innerHTML='<option value="">Todas</option>';list.innerHTML='';state.categories.sort((a,b)=>a.localeCompare(b)).forEach((c,i)=>{task.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`;filter.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`;list.innerHTML+=`<div class="item"><strong>${esc(c)}</strong><button class="secondary" onclick="deleteCategory(${i})">Excluir</button></div>`});task.value=tv;filter.value=fv;byId('totalCategories').innerText=state.categories.length}
+function addCategory(){const v=byId('newCategory').value.trim();if(!v)return;if(state.categories.some(c=>c.toLowerCase()===v.toLowerCase()))return alert('Categoria já existe.');state.categories.push(v);byId('newCategory').value='';save();renderAll()};
+function deleteCategory(i){const c=state.categories[i];if(state.tasks.some(t=>t.category===c))return alert('Categoria em uso.');if(confirm('Excluir categoria?')){state.categories.splice(i,1);save();renderAll()}}
+byId('openCategoryModal').onclick=()=>byId('categoryModal').classList.add('show');byId('closeCategoryModal').onclick=()=>byId('categoryModal').classList.remove('show');
+byId('taskForm').onsubmit=e=>{e.preventDefault();const id=byId('taskId').value,t={id:id||Date.now(),date:byId('taskDate').value,category:byId('taskCategory').value,description:byId('taskDescription').value.trim()};if(id)state.tasks[state.tasks.findIndex(x=>x.id==id)]=t;else state.tasks.push(t);save();clearTaskForm();renderAll()}
+function clearTaskForm(){byId('taskForm').reset();byId('taskId').value='';byId('taskDate').value=localToday()};
+function renderTasks(){let data=[...state.tasks],f=byId('filterCategory').value,s=byId('searchTask').value.toLowerCase().trim();if(f)data=data.filter(t=>t.category===f);if(s)data=data.filter(t=>t.description.toLowerCase().includes(s)||t.category.toLowerCase().includes(s));data.sort((a,b)=>String(b.date).localeCompare(String(a.date)));byId('tasksList').innerHTML=data.length?data.map(t=>`<div class="item"><div><span class="badge">${esc(t.category)}</span><h3>${esc(t.description)}</h3><p class="muted">${brDate(t.date)}</p></div><div class="actions"><button onclick="editTask(${t.id})">Editar</button><button class="secondary" onclick="deleteTask(${t.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhuma tarefa encontrada.</div>';byId('totalTasks').innerText=state.tasks.length}
+function editTask(id){const t=state.tasks.find(x=>x.id==id);byId('taskId').value=t.id;byId('taskDate').value=t.date;byId('taskCategory').value=t.category;byId('taskDescription').value=t.description;byId('taskForm').scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>byId('taskDescription').focus({preventScroll:true}),350)};
+function deleteTask(id){if(confirm('Excluir tarefa?')){state.tasks=state.tasks.filter(x=>x.id!=id);save();renderAll()}}byId('filterCategory').onchange=renderTasks;byId('searchTask').oninput=renderTasks;
+byId('marketForm').onsubmit=e=>{e.preventDefault();const id=byId('marketId').value,item={id:id||Date.now(),text:byId('marketItem').value.trim(),checked:false};if(id){const idx=state.market.findIndex(x=>x.id==id);item.checked=state.market[idx].checked;state.market[idx]=item}else state.market.push(item);save();clearMarketForm();renderMarket()};
+function clearMarketForm(){byId('marketForm').reset();byId('marketId').value=''};
+function renderMarket(){byId('marketList').innerHTML=state.market.length?state.market.map(i=>`<div class="item"><label class="market-check"><input type="checkbox" ${i.checked?'checked':''} onchange="toggleItem(${i.id})"><span class="${i.checked?'done':''}">${esc(i.text)}</span></label><div class="actions"><button onclick="editItem(${i.id})">Editar</button><button class="secondary" onclick="deleteItem(${i.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum item.</div>';byId('totalItems').innerText=state.market.length;byId('totalChecked').innerText=state.market.filter(i=>i.checked).length};
+function toggleItem(id){const i=state.market.find(x=>x.id==id);i.checked=!i.checked;save();renderMarket()};
+function editItem(id){const i=state.market.find(x=>x.id==id);byId('marketId').value=i.id;byId('marketItem').value=i.text;byId('marketForm').scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>byId('marketItem').focus({preventScroll:true}),350)};
 function deleteItem(id){if(confirm('Excluir item?')){state.market=state.market.filter(x=>x.id!=id);save();renderMarket()}}
-
-function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-organizador.json';a.click()}
-byId('backupInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);state.tasks=d.tasks||[];state.market=d.market||[];state.categories=d.categories||['Lavagem','Limpeza','Organização'];save();renderAll();alert('Backup importado.')}catch{alert('Backup inválido.')}};r.readAsText(file)}
-function renderAll(){renderCategories();renderTasks();renderMarket()}
-load();renderAll();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-organizador.json';a.click()}byId('backupInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);save();renderAll();alert('Backup importado.')}catch{alert('Backup inválido.')}};r.readAsText(file)}
+function renderAll(){renderCategories();renderTasks();renderMarket()}load();byId('taskDate').value=localToday();renderAll();renderCloudPanel();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');

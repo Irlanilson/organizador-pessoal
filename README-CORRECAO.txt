@@ -1,0 +1,1 @@
+Correção da navegação das abas: removido erro de sintaxe no app.js e atualizado o cache do service worker.
