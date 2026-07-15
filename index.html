@@ -27,6 +27,27 @@
           <span>Último backup na nuvem</span>
           <strong id="cloudLastSync">Consultando...</strong>
         </div>
+        
+        <div class="auto-backup-box">
+          <div class="auto-backup-head">
+            <div>
+              <strong>Backup automático diário</strong>
+              <p>Executa ao abrir ou reativar o app depois do horário configurado.</p>
+            </div>
+            <label class="switch-line">
+              <input id="autoBackupEnabled" type="checkbox" onchange="saveAutoBackupSettings()">
+              <span>Ativado</span>
+            </label>
+          </div>
+          <label>Horário
+            <input id="autoBackupTime" type="time" value="22:00" onchange="saveAutoBackupSettings()">
+          </label>
+          <div class="auto-backup-info">
+            <span>Último automático</span><strong id="autoBackupLastRun">Nunca</strong>
+            <span>Situação</span><strong id="autoBackupPending">Verificando...</strong>
+          </div>
+        </div>
+
         <div class="actions cloud-actions">
           <button type="button" onclick="uploadCloudData()">↑ Enviar para a nuvem</button>
           <button type="button" onclick="downloadCloudData()">↓ Baixar da nuvem</button>

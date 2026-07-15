@@ -109,9 +109,16 @@ async function renderCloudPanel(){
  byId('cloudEmail').textContent=user.email||'Conta conectada';
  try{
   const response=await cloudRequest(`/rest/v1/app_backups?app_name=eq.${encodeURIComponent(CLOUD_APP_NAME)}&select=updated_at&order=updated_at.desc&limit=1`);
-  const rows=response.ok?await response.json():[];
-  byId('cloudLastSync').textContent=rows[0]?.updated_at?cloudDate(rows[0].updated_at):'Nenhum backup enviado';
+  if(!response.ok){
+   console.error('Falha ao consultar último backup:',await response.text());
+   byId('cloudLastSync').textContent='Não foi possível consultar';
+  }else{
+   const rows=await response.json();
+   byId('cloudLastSync').textContent=rows[0]?.updated_at?cloudDate(rows[0].updated_at):'Nenhum backup enviado';
+  }
   status.innerHTML='<strong>Conta conectada</strong><p>Os dados continuam locais. A nuvem só é alterada quando você toca em um botão abaixo.</p>';
+  updateAutoBackupUI();
+  setTimeout(checkAutomaticBackup,200);
  }catch{
   byId('cloudLastSync').textContent='Não foi possível consultar';
  }
@@ -157,9 +164,10 @@ async function uploadCloudData(){
   if(updatedAt && byId('cloudLastSync')){
    byId('cloudLastSync').textContent=cloudDate(updatedAt);
   }
+  markAutomaticState(updatedAt);
   alert('Dados enviados para a nuvem com sucesso.');
-  if(!updatedAt){
-   await renderCloudPanel();
+  if(byId('cloudStatus')){
+   byId('cloudStatus').innerHTML='<strong>Conta conectada</strong><p>Backup enviado com sucesso. A data exibida acima foi atualizada com o retorno do Supabase.</p>';
   }
  }catch(error){alert(`Falha no envio: ${error.message}`)}
 }
@@ -176,6 +184,7 @@ async function downloadCloudData(){
   if(!confirm(`Baixar os dados da nuvem?\n\n${counts}\n\nOs dados locais atuais serão substituídos. Uma cópia de segurança local será criada antes.`))return;
   localStorage.setItem(CLOUD_LOCAL_SAFETY_KEY,JSON.stringify({created_at:new Date().toISOString(),data:getCloudPayload()}));
   applyCloudPayload(payload);
+  markAutomaticState(rows[0].updated_at);
   alert('Dados baixados e restaurados com sucesso.');
   await renderCloudPanel();
  }catch(error){alert(`Falha no download: ${error.message}`)}
@@ -190,3 +199,107 @@ function restorePreCloudBackup(){
   alert('Cópia de segurança local restaurada.');
  }catch{alert('A cópia de segurança local está inválida.')}
 }
+
+
+const AUTO_SETTINGS_KEY=`${CLOUD_APP_NAME}_auto_backup_settings`;
+const AUTO_LAST_HASH_KEY=`${CLOUD_APP_NAME}_auto_backup_last_hash`;
+const AUTO_LAST_RUN_KEY=`${CLOUD_APP_NAME}_auto_backup_last_run`;
+const AUTO_LAST_CLOUD_KEY=`${CLOUD_APP_NAME}_auto_backup_last_cloud_seen`;
+let autoBackupRunning=false;
+
+function getAutoBackupSettings(){
+ try{return {enabled:false,time:'22:00',...JSON.parse(localStorage.getItem(AUTO_SETTINGS_KEY)||'{}')}}
+ catch{return {enabled:false,time:'22:00'}}
+}
+function stableStringify(v){
+ if(v===null||typeof v!=='object')return JSON.stringify(v);
+ if(Array.isArray(v))return `[${v.map(stableStringify).join(',')}]`;
+ return `{${Object.keys(v).sort().map(k=>`${JSON.stringify(k)}:${stableStringify(v[k])}`).join(',')}}`;
+}
+function simpleHash(text){
+ let h=2166136261;
+ for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}
+ return (h>>>0).toString(16);
+}
+function currentPayloadHash(){return simpleHash(stableStringify(getCloudPayload()))}
+function localDayKey(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function saveAutoBackupSettings(){
+ const settings={
+  enabled:!!byId('autoBackupEnabled')?.checked,
+  time:byId('autoBackupTime')?.value||'22:00'
+ };
+ localStorage.setItem(AUTO_SETTINGS_KEY,JSON.stringify(settings));
+ updateAutoBackupUI();
+ checkAutomaticBackup();
+}
+function autoBackupDue(){
+ const s=getAutoBackupSettings();
+ if(!s.enabled)return false;
+ const [h,m]=(s.time||'22:00').split(':').map(Number);
+ const now=new Date();
+ if(now<new Date(now.getFullYear(),now.getMonth(),now.getDate(),h||0,m||0))return false;
+ const last=localStorage.getItem(AUTO_LAST_RUN_KEY);
+ return !last||localDayKey(new Date(last))!==localDayKey(now);
+}
+function hasPendingLocalChanges(){
+ return currentPayloadHash()!==localStorage.getItem(AUTO_LAST_HASH_KEY);
+}
+function updateAutoBackupUI(){
+ const s=getAutoBackupSettings();
+ if(byId('autoBackupEnabled'))byId('autoBackupEnabled').checked=!!s.enabled;
+ if(byId('autoBackupTime'))byId('autoBackupTime').value=s.time||'22:00';
+ const last=localStorage.getItem(AUTO_LAST_RUN_KEY);
+ if(byId('autoBackupLastRun'))byId('autoBackupLastRun').textContent=last?cloudDate(last):'Nunca';
+ if(byId('autoBackupPending')){
+  byId('autoBackupPending').textContent=!s.enabled?'Desativado':
+   !hasPendingLocalChanges()?'Sem alterações pendentes':
+   autoBackupDue()?'Backup pendente':'Alterações aguardando o horário';
+ }
+}
+async function latestCloudMeta(){
+ const response=await cloudRequest(`/rest/v1/app_backups?app_name=eq.${encodeURIComponent(CLOUD_APP_NAME)}&select=updated_at&order=updated_at.desc&limit=1`);
+ if(!response.ok)throw new Error(await response.text());
+ return (await response.json())[0]||null;
+}
+async function checkAutomaticBackup(){
+ updateAutoBackupUI();
+ if(autoBackupRunning||!autoBackupDue()||!hasPendingLocalChanges())return;
+ const user=await ensureCloudUser();
+ if(!user)return;
+ autoBackupRunning=true;
+ try{
+  const meta=await latestCloudMeta();
+  const lastSeen=localStorage.getItem(AUTO_LAST_CLOUD_KEY);
+  if(meta?.updated_at&&lastSeen&&new Date(meta.updated_at)>new Date(lastSeen)){
+   if(byId('autoBackupPending'))byId('autoBackupPending').textContent='Há backup mais recente na nuvem. Baixe antes.';
+   return;
+  }
+  const updatedAt=new Date().toISOString();
+  const response=await cloudRequest('/rest/v1/app_backups?on_conflict=user_id,app_name',{
+   method:'POST',
+   headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
+   body:JSON.stringify({user_id:user.id,app_name:CLOUD_APP_NAME,data:getCloudPayload(),updated_at:updatedAt})
+  });
+  if(!response.ok)throw new Error(await response.text());
+  const result=await response.json();
+  const savedAt=result?.[0]?.updated_at||updatedAt;
+  localStorage.setItem(AUTO_LAST_HASH_KEY,currentPayloadHash());
+  localStorage.setItem(AUTO_LAST_RUN_KEY,new Date().toISOString());
+  localStorage.setItem(AUTO_LAST_CLOUD_KEY,savedAt);
+  if(byId('cloudLastSync'))byId('cloudLastSync').textContent=cloudDate(savedAt);
+  if(byId('autoBackupPending'))byId('autoBackupPending').textContent='Backup automático concluído';
+ }catch(err){
+  console.error(err);
+  if(byId('autoBackupPending'))byId('autoBackupPending').textContent='Falha no backup automático';
+ }finally{
+  autoBackupRunning=false;
+  updateAutoBackupUI();
+ }
+}
+function markAutomaticState(updatedAt){
+ localStorage.setItem(AUTO_LAST_HASH_KEY,currentPayloadHash());
+ localStorage.setItem(AUTO_LAST_CLOUD_KEY,updatedAt||new Date().toISOString());
+ updateAutoBackupUI();
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkAutomaticBackup()});
+window.addEventListener('online',checkAutomaticBackup);

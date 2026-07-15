@@ -27,3 +27,4 @@ function editItem(id){const i=state.market.find(x=>x.id==id);byId('marketId').va
 function deleteItem(id){if(confirm('Excluir item?')){state.market=state.market.filter(x=>x.id!=id);save();renderMarket()}}
 function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-organizador.json';a.click()}byId('backupInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);save();renderAll();alert('Backup importado.')}catch{alert('Backup inválido.')}};r.readAsText(file)}
 function renderAll(){renderCategories();renderTasks();renderMarket()}load();byId('taskDate').value=localToday();renderAll();renderCloudPanel();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+setTimeout(()=>{if(typeof checkAutomaticBackup==='function')checkAutomaticBackup();},700);
