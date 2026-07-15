@@ -28,12 +28,12 @@ async function cloudRequest(path,options={}){
   ...(options.headers||{})
  };
  if(session?.access_token)headers.Authorization=`Bearer ${session.access_token}`;
- let response=await fetch(`${SUPABASE_URL}${path}`,{...options,headers});
+ let response=await fetch(`${SUPABASE_URL}${path}`,{...options,headers,cache:'no-store'});
  if(response.status===401 && session?.refresh_token && !path.includes('/auth/v1/token')){
   const refreshed=await refreshCloudSession();
   if(refreshed){
    headers.Authorization=`Bearer ${cloudSession().access_token}`;
-   response=await fetch(`${SUPABASE_URL}${path}`,{...options,headers});
+   response=await fetch(`${SUPABASE_URL}${path}`,{...options,headers,cache:'no-store'});
   }
  }
  return response;
@@ -108,7 +108,7 @@ async function renderCloudPanel(){
  auth.hidden=true;connected.hidden=false;
  byId('cloudEmail').textContent=user.email||'Conta conectada';
  try{
-  const response=await cloudRequest(`/rest/v1/app_backups?app_name=eq.${encodeURIComponent(CLOUD_APP_NAME)}&select=updated_at&limit=1`);
+  const response=await cloudRequest(`/rest/v1/app_backups?app_name=eq.${encodeURIComponent(CLOUD_APP_NAME)}&select=updated_at&limit=1&_=${Date.now()}`);
   const rows=response.ok?await response.json():[];
   byId('cloudLastSync').textContent=rows[0]?.updated_at?cloudDate(rows[0].updated_at):'Nenhum backup enviado';
   status.innerHTML='<strong>Conta conectada</strong><p>Os dados continuam locais. A nuvem só é alterada quando você toca em um botão abaixo.</p>';
@@ -152,6 +152,11 @@ async function uploadCloudData(){
    body:JSON.stringify({user_id:user.id,app_name:CLOUD_APP_NAME,data:payload,updated_at:new Date().toISOString()})
   });
   if(!response.ok){const e=await response.text();throw new Error(e||'Erro ao enviar dados.')}
+  const result=await response.json();
+  const updatedAt=result?.[0]?.updated_at;
+  if(updatedAt && byId('cloudLastSync')){
+   byId('cloudLastSync').textContent=cloudDate(updatedAt);
+  }
   alert('Dados enviados para a nuvem com sucesso.');
   await renderCloudPanel();
  }catch(error){alert(`Falha no envio: ${error.message}`)}
