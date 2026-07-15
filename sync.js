@@ -118,7 +118,7 @@ async function renderCloudPanel(){
   }
   status.innerHTML='<strong>Conta conectada</strong><p>Os dados continuam locais. A nuvem só é alterada quando você toca em um botão abaixo.</p>';
   updateAutoBackupUI();
-  setTimeout(checkAutomaticBackup,200);
+  setTimeout(safeAutomaticBackupCheck,800);
  }catch{
   byId('cloudLastSync').textContent='Não foi possível consultar';
  }
@@ -230,7 +230,7 @@ function saveAutoBackupSettings(){
  };
  localStorage.setItem(AUTO_SETTINGS_KEY,JSON.stringify(settings));
  updateAutoBackupUI();
- checkAutomaticBackup();
+ setTimeout(safeAutomaticBackupCheck,800);
 }
 function autoBackupDue(){
  const s=getAutoBackupSettings();
@@ -301,5 +301,13 @@ function markAutomaticState(updatedAt){
  localStorage.setItem(AUTO_LAST_CLOUD_KEY,updatedAt||new Date().toISOString());
  updateAutoBackupUI();
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkAutomaticBackup()});
-window.addEventListener('online',checkAutomaticBackup);
+function canRunAutomaticBackupNow(){
+ const el=document.activeElement;
+ return !(el&&['INPUT','TEXTAREA','SELECT'].includes(el.tagName));
+}
+function safeAutomaticBackupCheck(){
+ if(!canRunAutomaticBackupNow())return;
+ checkAutomaticBackup();
+}
+window.addEventListener('pageshow',()=>setTimeout(safeAutomaticBackupCheck,800));
+window.addEventListener('online',()=>setTimeout(safeAutomaticBackupCheck,800));
