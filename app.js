@@ -1,7 +1,7 @@
 const KEY='organizador_pessoal_v2_ios';let state={tasks:[],market:[],categories:['Lavagem','Limpeza','Organização']};
 function byId(id){return document.getElementById(id)};
 function esc(t){return String(t??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
-function save(){localStorage.setItem(KEY,JSON.stringify(state))};
+function save(){localStorage.setItem(KEY,JSON.stringify(state));if(typeof scheduleSyncAfterChange==='function')scheduleSyncAfterChange()};
 function load(){const s=localStorage.getItem(KEY);if(s){try{state=JSON.parse(s)}catch{}}else restoreLegacyData(false)}
 function localToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 function brDate(d){if(!d)return'';const [y,m,day]=d.split('-');return `${day}/${m}/${y}`}
@@ -27,4 +27,7 @@ function editItem(id){const i=state.market.find(x=>x.id==id);byId('marketId').va
 function deleteItem(id){if(confirm('Excluir item?')){state.market=state.market.filter(x=>x.id!=id);save();renderMarket()}}
 function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-organizador.json';a.click()}byId('backupInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);save();renderAll();alert('Backup importado.')}catch{alert('Backup inválido.')}};r.readAsText(file)}
 function renderAll(){renderCategories();renderTasks();renderMarket()}load();byId('taskDate').value=localToday();renderAll();renderCloudPanel();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
-setTimeout(()=>{if(typeof safeAutomaticBackupCheck==='function')safeAutomaticBackupCheck();},1200);
+
+// Inicializar indicador de status e sync
+if(!navigator.onLine){updateSyncStatus('offline')}
+loadSyncQueue();

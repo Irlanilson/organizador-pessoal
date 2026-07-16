@@ -27,3 +27,16 @@ line-height:1.3;
 .auto-backup-info{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:12px}
 .auto-backup-info span{color:#64748b}.auto-backup-info strong{text-align:right}
 @media(max-width:650px){.auto-backup-head{display:block}.switch-line{margin-top:12px}.auto-backup-info{grid-template-columns:1fr}.auto-backup-info strong{text-align:left;margin-bottom:8px}}
+
+
+/* ─── Indicador de Status de Sincronização ─── */
+.sync-status-indicator{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:4px 12px;border-radius:999px;font-size:.8rem;font-weight:700;background:rgba(255,255,255,.2);color:white;backdrop-filter:blur(4px)}
+.sync-icon{font-size:1rem;line-height:1}
+.sync-status-syncing .sync-icon{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.sync-status-synced{background:rgba(22,163,74,.3)}
+.sync-status-pending{background:rgba(234,179,8,.3)}
+.sync-status-offline{background:rgba(100,116,139,.3)}
+.sync-status-syncing{background:rgba(59,130,246,.3)}
+.sync-status-error{background:rgba(220,38,38,.3)}
+.sync-status-idle{background:rgba(255,255,255,.15)}
