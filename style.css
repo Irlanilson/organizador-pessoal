@@ -18,6 +18,8 @@ display:inline-block;
 line-height:1.3;
 }
 
+.priority-badge{font-size:.75rem;font-weight:700;white-space:nowrap;padding:2px 7px;background:#f1f5f9;border-radius:999px}
+
 
 
 
