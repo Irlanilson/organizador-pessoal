@@ -1,13 +1,13 @@
-const KEY='organizador_pessoal_v2_ios';let state={tasks:[],market:[],categories:['Lavagem','Limpeza','Organização']};
+const KEY='organizador_pessoal_v2_ios';let state={tasks:[],market:[],categories:['Lavagem','Limpeza','Organização'],dates:[]};
 function byId(id){return document.getElementById(id)};
 function esc(t){return String(t??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));if(typeof scheduleSyncAfterChange==='function')scheduleSyncAfterChange()};
-function load(){const s=localStorage.getItem(KEY);if(s){try{state=JSON.parse(s)}catch{}}else restoreLegacyData(false)}
+function load(){const s=localStorage.getItem(KEY);if(s){try{state=JSON.parse(s)}catch{}}else restoreLegacyData(false);if(!state.dates)state.dates=[]}
 function localToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 function brDate(d){if(!d)return'';const [y,m,day]=d.split('-');return `${day}/${m}/${y}`}
-function getCloudPayload(){return {tasks:state.tasks,market:state.market,categories:state.categories}};
-function getCloudCounts(p){return `${(p.tasks||[]).length} tarefas\n${(p.market||[]).length} itens de compra\n${(p.categories||[]).length} categorias`};
-function applyCloudPayload(p){state={tasks:p.tasks||[],market:p.market||[],categories:p.categories||['Lavagem','Limpeza','Organização']};save();renderAll()}
+function getCloudPayload(){return {tasks:state.tasks,market:state.market,categories:state.categories,dates:state.dates}};
+function getCloudCounts(p){return `${(p.tasks||[]).length} tarefas\n${(p.market||[]).length} itens de compra\n${(p.categories||[]).length} categorias\n${(p.dates||[]).length} datas`};
+function applyCloudPayload(p){state={tasks:p.tasks||[],market:p.market||[],categories:p.categories||['Lavagem','Limpeza','Organização'],dates:p.dates||[]};save();renderAll()}
 function restoreLegacyData(show=true){const oldTasks=JSON.parse(localStorage.getItem('tasks')||'[]'),oldMarket=JSON.parse(localStorage.getItem('market')||'[]'),oldCategories=JSON.parse(localStorage.getItem('categories')||'[]');if(oldTasks.length||oldMarket.length||oldCategories.length){state.tasks=oldTasks;state.market=oldMarket;state.categories=oldCategories.length?oldCategories:[...new Set(oldTasks.map(t=>t.category).filter(Boolean))];save();renderAll();if(show)alert('Dados antigos restaurados.');return true}if(show)alert('Não encontrei dados antigos.');return false}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));b.classList.add('active');byId(b.dataset.tab).classList.add('active');if(b.dataset.tab==='sincronizacao')renderCloudPanel()});
 function renderCategories(){const task=byId('taskCategory'),filter=byId('filterCategory'),list=byId('categoryList'),tv=task.value,fv=filter.value;task.innerHTML='<option value="">Selecione...</option>';filter.innerHTML='<option value="">Todas</option>';list.innerHTML='';state.categories.sort((a,b)=>a.localeCompare(b)).forEach((c,i)=>{task.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`;filter.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`;list.innerHTML+=`<div class="item"><strong>${esc(c)}</strong><button class="secondary" onclick="deleteCategory(${i})">Excluir</button></div>`});task.value=tv;filter.value=fv;byId('totalCategories').innerText=state.categories.length}
@@ -25,8 +25,17 @@ function renderMarket(){const sorted=[...state.market].sort((a,b)=>{if(a.checked
 function toggleItem(id){const i=state.market.find(x=>x.id==id);i.checked=!i.checked;save();renderMarket()};
 function editItem(id){const i=state.market.find(x=>x.id==id);byId('marketId').value=i.id;byId('marketItem').value=i.text;byId('marketPriority').value=i.priority||1;byId('marketForm').scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>byId('marketItem').focus({preventScroll:true}),350)};
 function deleteItem(id){if(confirm('Excluir item?')){state.market=state.market.filter(x=>x.id!=id);save();renderMarket()}}
-function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-organizador.json';a.click()}byId('backupInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);save();renderAll();alert('Backup importado.')}catch{alert('Backup inválido.')}};r.readAsText(file)}
-function renderAll(){renderCategories();renderTasks();renderMarket()}load();byId('taskDate').value=localToday();renderAll();renderCloudPanel();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-organizador.json';a.click()}byId('backupInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const imported=JSON.parse(r.result);if(!imported.dates)imported.dates=[];state=imported;save();renderAll();alert('Backup importado.')}catch{alert('Backup inválido.')}};r.readAsText(file)}
+
+// ─── Datas ─────────────────────────────────────────────────────────
+byId('dateForm').onsubmit=e=>{e.preventDefault();const id=byId('dateId').value,d={id:id||Date.now(),description:byId('dateDescription').value.trim(),date:byId('dateValue').value};if(id)state.dates[state.dates.findIndex(x=>x.id==id)]=d;else state.dates.push(d);save();clearDateForm();renderAll()};
+function clearDateForm(){byId('dateForm').reset();byId('dateId').value='';byId('dateValue').value=localToday()};
+function renderDates(){let data=[...state.dates],s=byId('searchDate').value.toLowerCase().trim();if(s)data=data.filter(d=>d.description.toLowerCase().includes(s));data.sort((a,b)=>String(b.date).localeCompare(String(a.date)));byId('datesList').innerHTML=data.length?data.map(d=>`<div class="item"><div><h3>${esc(d.description)}</h3><p class="muted">${brDate(d.date)}</p></div><div class="actions"><button onclick="editDate(${d.id})">Editar</button><button class="secondary" onclick="deleteDate(${d.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhuma data registrada.</div>';byId('totalDates').innerText=state.dates.length};
+function editDate(id){const d=state.dates.find(x=>x.id==id);byId('dateId').value=d.id;byId('dateDescription').value=d.description;byId('dateValue').value=d.date;byId('dateForm').scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>byId('dateDescription').focus({preventScroll:true}),350)};
+function deleteDate(id){if(confirm('Excluir este registro?')){state.dates=state.dates.filter(x=>x.id!=id);save();renderAll()}}
+byId('searchDate').oninput=renderDates;
+
+function renderAll(){renderCategories();renderTasks();renderMarket();renderDates()}load();byId('taskDate').value=localToday();byId('dateValue').value=localToday();renderAll();renderCloudPanel();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
 
 // Inicializar indicador de status e sync
 if(!navigator.onLine){updateSyncStatus('offline')}
