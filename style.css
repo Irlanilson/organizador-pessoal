@@ -34,3 +34,7 @@ line-height:1.3;
 .sync-status-syncing{background:rgba(59,130,246,.3)}
 .sync-status-error{background:rgba(220,38,38,.3)}
 .sync-status-idle{background:rgba(255,255,255,.15)}
+
+/* Botão flutuante "voltar ao topo" da página */
+.page-to-top{position:fixed;right:18px;bottom:18px;width:48px;height:48px;border-radius:50%;border:none;background:var(--main);color:white;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 12px #0004;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}
+.page-to-top.show{opacity:1;pointer-events:auto}

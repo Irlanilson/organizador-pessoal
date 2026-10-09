@@ -9,7 +9,21 @@ function getCloudPayload(){return {tasks:state.tasks,market:state.market,categor
 function getCloudCounts(p){return `${(p.tasks||[]).length} tarefas\n${(p.market||[]).length} itens de compra\n${(p.categories||[]).length} categorias\n${(p.dates||[]).length} datas`};
 function applyCloudPayload(p){state={tasks:p.tasks||[],market:p.market||[],categories:p.categories||['Lavagem','Limpeza','Organização'],dates:p.dates||[]};save();renderAll()}
 function restoreLegacyData(show=true){const oldTasks=JSON.parse(localStorage.getItem('tasks')||'[]'),oldMarket=JSON.parse(localStorage.getItem('market')||'[]'),oldCategories=JSON.parse(localStorage.getItem('categories')||'[]');if(oldTasks.length||oldMarket.length||oldCategories.length){state.tasks=oldTasks;state.market=oldMarket;state.categories=oldCategories.length?oldCategories:[...new Set(oldTasks.map(t=>t.category).filter(Boolean))];save();renderAll();if(show)alert('Dados antigos restaurados.');return true}if(show)alert('Não encontrei dados antigos.');return false}
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));b.classList.add('active');byId(b.dataset.tab).classList.add('active');if(b.dataset.tab==='sincronizacao')renderCloudPanel()});
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));b.classList.add('active');byId(b.dataset.tab).classList.add('active');if(b.dataset.tab==='sincronizacao')renderCloudPanel();updatePageToTop()});
+
+// ─── Botão flutuante "voltar ao topo" ──────────────────────────────
+// Visível apenas nas abas Tarefas Domésticas, Datas e Compras, e só
+// depois de rolar a página um pouco para baixo.
+const PAGE_TO_TOP_TABS=['tarefas','datas','compras'];
+function activeTab(){const t=document.querySelector('.tab.active');return t?t.dataset.tab:''}
+function updatePageToTop(){
+ const btn=byId('pageToTop');
+ if(!btn)return;
+ const allowed=PAGE_TO_TOP_TABS.includes(activeTab());
+ btn.classList.toggle('show',allowed&&window.scrollY>300);
+}
+function scrollPageTop(){window.scrollTo({top:0,behavior:'smooth'})}
+window.addEventListener('scroll',updatePageToTop,{passive:true});
 function renderCategories(){const task=byId('taskCategory'),filter=byId('filterCategory'),list=byId('categoryList'),tv=task.value,fv=filter.value;task.innerHTML='<option value="">Selecione...</option>';filter.innerHTML='<option value="">Todas</option>';list.innerHTML='';state.categories.sort((a,b)=>a.localeCompare(b)).forEach((c,i)=>{task.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`;filter.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`;list.innerHTML+=`<div class="item"><strong>${esc(c)}</strong><button class="secondary" onclick="deleteCategory(${i})">Excluir</button></div>`});task.value=tv;filter.value=fv;byId('totalCategories').innerText=state.categories.length}
 function addCategory(){const v=byId('newCategory').value.trim();if(!v)return;if(state.categories.some(c=>c.toLowerCase()===v.toLowerCase()))return alert('Categoria já existe.');state.categories.push(v);byId('newCategory').value='';save();renderAll()};
 function deleteCategory(i){const c=state.categories[i];if(state.tasks.some(t=>t.category===c))return alert('Categoria em uso.');if(confirm('Excluir categoria?')){state.categories.splice(i,1);save();renderAll()}}
@@ -35,7 +49,7 @@ function editDate(id){const d=state.dates.find(x=>x.id==id);byId('dateId').value
 function deleteDate(id){if(confirm('Excluir este registro?')){state.dates=state.dates.filter(x=>x.id!=id);save();renderAll()}}
 byId('searchDate').oninput=renderDates;
 
-function renderAll(){renderCategories();renderTasks();renderMarket();renderDates()}load();byId('taskDate').value=localToday();byId('dateValue').value=localToday();renderAll();renderCloudPanel();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+function renderAll(){renderCategories();renderTasks();renderMarket();renderDates()}load();byId('taskDate').value=localToday();byId('dateValue').value=localToday();renderAll();renderCloudPanel();updatePageToTop();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
 
 // Inicializar indicador de status e sync
 if(!navigator.onLine){updateSyncStatus('offline')}
